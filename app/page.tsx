@@ -146,8 +146,16 @@ export default function POSPage() {
         {/* Header */}
         <header className="mb-8">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between">
-            {/* Left Button */}
-            <div className="flex justify-center md:justify-start">
+            {/* Title */}
+            <div className="text-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-pink-500 mb-1">
+                Els Baby Store
+              </h1>
+              <p className="text-gray-600 text-xs sm:text-sm md:text-base">
+                Management Store
+              </p>
+              {/* Action Buttons */}
+              <div className="flex justify-center md:justify-start">
               <button
                 onClick={() => setShowProductManagement(true)}
                 className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md flex items-center gap-1 text-xs sm:text-sm md:text-base"
@@ -166,21 +174,8 @@ export default function POSPage() {
                   />
                 </svg>
                 Kelola Produk
-              </button>
-            </div>
-
-            {/* Title */}
-            <div className="text-center">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-pink-500 mb-1">
-                Els Baby Store
-              </h1>
-              <p className="text-gray-600 text-xs sm:text-sm md:text-base">
-                Management Store
-              </p>
-            </div>
-
-            {/* Right Button */}
-            <div className="flex justify-center md:justify-end">
+              </button>          
+                
               <button
                 onClick={() => setShowStats(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md flex items-center gap-1 text-xs sm:text-sm md:text-base"
@@ -200,9 +195,8 @@ export default function POSPage() {
                 </svg>
                 Statistik
               </button>
-            </div>
-          </div>
-        </header>
+             </div>
+            </header>
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
