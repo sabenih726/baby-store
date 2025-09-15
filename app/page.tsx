@@ -10,7 +10,12 @@ import { SalesStats } from "@/components/sales-stats"
 import { ProductManagement } from "@/components/product-management"
 import { products as initialProducts } from "@/lib/products"
 import type { CartItem, Product } from "@/lib/types"
-import { saveTransaction, saveCartState, getSavedCartState, clearSavedCartState } from "@/lib/storage"
+import {
+  saveTransaction,
+  saveCartState,
+  getSavedCartState,
+  clearSavedCartState,
+} from "@/lib/storage"
 
 export default function POSPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts)
@@ -22,12 +27,10 @@ export default function POSPage() {
   const [showProductManagement, setShowProductManagement] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
 
-  // Load saved cart and products on component mount
+  // Load cart & products
   useEffect(() => {
     const savedCart = getSavedCartState()
-    if (savedCart.length > 0) {
-      setCart(savedCart)
-    }
+    if (savedCart.length > 0) setCart(savedCart)
 
     const savedProducts = localStorage.getItem("pos-products")
     if (savedProducts) {
@@ -39,41 +42,33 @@ export default function POSPage() {
     }
   }, [])
 
-  // Save products to localStorage whenever products change
+  // save products anytime
   useEffect(() => {
     localStorage.setItem("pos-products", JSON.stringify(products))
   }, [products])
 
-  // Save cart state whenever cart changes
   useEffect(() => {
-    if (cart.length > 0) {
-      saveCartState(cart)
-    } else {
-      clearSavedCartState()
-    }
+    if (cart.length > 0) saveCartState(cart)
+    else clearSavedCartState()
   }, [cart])
 
-  // Filter products based on search term
-  const filteredProducts = products.filter((product) => product.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  // Add product to cart
-  const addToCart = (productId: number) => {
-    const product = products.find((p) => p.id === productId)
+  const addToCart = (id: number) => {
+    const product = products.find((p) => p.id === id)
     if (!product) return
-
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === productId)
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.id === productId ? { ...item, quantity: item.quantity + 1 } : item
-        )
-      } else {
-        return [...prevCart, { ...product, quantity: 1 }]
-      }
+    setCart((prev) => {
+      const exist = prev.find((item) => item.id === id)
+      return exist
+        ? prev.map((i) =>
+            i.id === id ? { ...i, quantity: i.quantity + 1 } : i
+          )
+        : [...prev, { ...product, quantity: 1 }]
     })
   }
 
-  // Add product by barcode
   const addProductByBarcode = (barcode: string) => {
     const product = products.find((p) => p.barcode === barcode)
     if (product) {
@@ -83,24 +78,22 @@ export default function POSPage() {
     return null
   }
 
-  // Update item quantity
-  const updateQuantity = (productId: number, amount: number) => {
-    setCart((prevCart) =>
-      prevCart
-        .map((item) => {
-          if (item.id === productId) {
-            const newQuantity = item.quantity + amount
-            return newQuantity <= 0 ? null : { ...item, quantity: newQuantity }
-          }
-          return item
-        })
+  const updateQuantity = (id: number, amount: number) => {
+    setCart((prev) =>
+      prev
+        .map((i) =>
+          i.id === id && i.quantity + amount > 0
+            ? { ...i, quantity: i.quantity + amount }
+            : i.id === id && i.quantity + amount <= 0
+            ? null
+            : i
+        )
         .filter(Boolean) as CartItem[]
     )
   }
 
-  // Remove item from cart
-  const removeFromCart = (productId: number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId))
+  const removeFromCart = (id: number) => {
+    setCart((prev) => prev.filter((i) => i.id !== id))
   }
 
   const addProduct = (productData: Omit<Product, "id">) => {
@@ -111,40 +104,35 @@ export default function POSPage() {
     setProducts((prev) => [...prev, newProduct])
   }
 
-  const updateProduct = (updatedProduct: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)))
+  const updateProduct = (prod: Product) => {
+    setProducts((prev) => prev.map((p) => (p.id === prod.id ? prod : p)))
   }
 
-  const deleteProduct = (productId: number) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId))
-    setCart((prev) => prev.filter((item) => item.id !== productId))
+  const deleteProduct = (id: number) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id))
+    setCart((prev) => prev.filter((i) => i.id !== id))
   }
 
-  // Calculate totals
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0)
   const tax = subtotal * 0.11
   const total = subtotal + tax
 
-  // Handle checkout
-  const handleCheckout = (cashAmount: number) => {
-    const change = cashAmount - total
+  const handleCheckout = (cash: number) => {
     const receipt = {
       items: cart,
       subtotal,
       tax,
       total,
-      cash: cashAmount,
-      change,
+      cash,
+      change: cash - total,
       timestamp: new Date(),
       transactionId: Math.floor(Math.random() * 900000) + 100000,
     }
-
     saveTransaction(receipt)
     setReceiptData(receipt)
     setShowReceipt(true)
   }
 
-  // Reset transaction
   const resetTransaction = () => {
     setCart([])
     setShowReceipt(false)
@@ -157,40 +145,52 @@ export default function POSPage() {
       <div className="container mx-auto p-4 lg:p-6">
         {/* Header */}
         <header className="mb-8">
-          <div className="flex items-center">
-            {/* Left (Kelola Produk) */}
-            <div className="flex-1">
+          <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between">
+            {/* Left Button */}
+            <div className="flex justify-center md:justify-start">
               <button
                 onClick={() => setShowProductManagement(true)}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center gap-2 text-sm font-medium">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md flex items-center gap-1 text-xs sm:text-sm md:text-base"
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                   />
+                  />
                 </svg>
                 Kelola Produk
               </button>
             </div>
 
-            {/* Center (Title) */}
-            <div className="flex-1 text-center">
-              <h1 className="text-3xl md:text-4xl font-bold text-pink-500 mb-1">
+            {/* Title */}
+            <div className="text-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-pink-500 mb-1">
                 Els Baby Store
               </h1>
-              <p className="text-gray-600 text-sm md:text-base">
+              <p className="text-gray-600 text-xs sm:text-sm md:text-base">
                 Management Store
               </p>
             </div>
 
-            {/* Right (Statistik) */}
-            <div className="flex-1 flex justify-end">
+            {/* Right Button */}
+            <div className="flex justify-center md:justify-end">
               <button
                 onClick={() => setShowStats(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center gap-2 text-sm font-medium">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md flex items-center gap-1 text-xs sm:text-sm md:text-base"
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -204,21 +204,23 @@ export default function POSPage() {
           </div>
         </header>
 
-        {/* Main grid */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Products Section */}
+          {/* Products */}
           <div className="lg:col-span-2">
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-800">Daftar Produk</h2>
-                <div className="flex items-center gap-3">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+              <div className="flex flex-col sm:flex-row justify-between gap-4 items-center mb-6">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">
+                  Daftar Produk
+                </h2>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                   <SearchBar value={searchTerm} onChange={setSearchTerm} />
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center gap-2 text-sm"
+                    className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-full flex items-center gap-1 text-xs sm:text-sm md:text-base"
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-3 h-3 sm:w-4 sm:h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -238,7 +240,7 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Cart Section */}
+          {/* Cart */}
           <div className="lg:col-span-1">
             <ShoppingCart
               items={cart}
@@ -251,19 +253,40 @@ export default function POSPage() {
       </div>
 
       {/* Modals */}
-      {showScanner && <BarcodeScanner onScan={addProductByBarcode} onClose={() => setShowScanner(false)} />}
-
-      {showReceipt && receiptData && <ReceiptModal receipt={receiptData} onClose={resetTransaction} />}
-
+      {showScanner && (
+        <BarcodeScanner
+          onScan={addProductByBarcode}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+      {showReceipt && receiptData && (
+        <ReceiptModal receipt={receiptData} onClose={resetTransaction} />
+      )}
       {showStats && <SalesStats onClose={() => setShowStats(false)} />}
-
       {showProductManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-2xl font-semibold">Manajemen Produk</h2>
-              <button onClick={() => setShowProductManagement(false)} className="text-gray-400 hover:text-gray-600">
-                <span className="material-icons">close</span>
+              <h2 className="text-xl sm:text-2xl font-semibold">
+                Manajemen Produk
+              </h2>
+              <button
+                onClick={() => setShowProductManagement(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
