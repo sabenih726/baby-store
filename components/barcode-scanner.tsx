@@ -18,35 +18,45 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | "">("")
   const [codeReader] = useState(new BrowserMultiFormatReader())
 
-  // ---- Mulai Kamera & Decoder ----
+  // simpan object controls dari decodeFromVideoDevice
+  const controlsRef = useRef<{ stop: () => void } | null>(null)
+
   useEffect(() => {
     let canceled = false
     setIsScanning(true)
 
     if (videoRef.current) {
-      codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
-        if (canceled) return
+      controlsRef.current = codeReader.decodeFromVideoDevice(
+        null,
+        videoRef.current,
+        (result, err, controls) => {
+          if (canceled) return
 
-        // simpan stream ke ref supaya bisa dihentikan manual
-        if (videoRef.current?.srcObject) {
-          streamRef.current = videoRef.current.srcObject as MediaStream
-        }
+          // simpan controls biar bisa di-stop manual
+          if (!controlsRef.current) {
+            controlsRef.current = controls
+          }
 
-        if (result) {
-          const text = result.getText()
-          const productName = onScan(text)
+          if (videoRef.current?.srcObject) {
+            streamRef.current = videoRef.current.srcObject as MediaStream
+          }
 
-          if (productName) {
-            setFeedback(`${productName} berhasil ditambahkan!`)
-            setFeedbackType("success")
-            playBeepSound()
-            setTimeout(() => handleClose(), 1500)
-          } else {
-            setFeedback("Barcode tidak ditemukan di database.")
-            setFeedbackType("error")
+          if (result) {
+            const text = result.getText()
+            const productName = onScan(text)
+
+            if (productName) {
+              setFeedback(`${productName} berhasil ditambahkan!`)
+              setFeedbackType("success")
+              playBeepSound()
+              setTimeout(() => handleClose(), 1500)
+            } else {
+              setFeedback("Barcode tidak ditemukan di database.")
+              setFeedbackType("error")
+            }
           }
         }
-      })
+      )
     }
 
     return () => {
@@ -56,23 +66,34 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ---- STOP Kamera ----
   const stopCamera = () => {
+    // hentikan decoding ZXing langsung
+    if (controlsRef.current) {
+      controlsRef.current.stop()
+      controlsRef.current = null
+    }
+
+    // hentikan track stream manual kalau masih aktif
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
+    if (videoRef.current?.srcObject) {
+      ;(videoRef.current.srcObject as MediaStream)
+        ?.getTracks()
+        .forEach(track => track.stop())
+      videoRef.current.srcObject = null
+    }
+
     codeReader.reset()
     setIsScanning(false)
   }
 
-  // ---- CLOSE Modal ----
   const handleClose = () => {
     stopCamera()
     onClose()
   }
 
-  // ---- INPUT Manual ----
   const handleManualInput = () => {
     const barcode = prompt("Masukkan barcode secara manual:")
     if (barcode) {
@@ -89,9 +110,9 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     }
   }
 
-  // ---- BEEP ----
   const playBeepSound = () => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 
@@ -102,13 +123,15 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     oscillator.type = "square"
 
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioContext.currentTime + 0.1
+    )
 
     oscillator.start(audioContext.currentTime)
     oscillator.stop(audioContext.currentTime + 0.1)
   }
 
-  // ---- UI ----
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md relative">
@@ -121,8 +144,18 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               onClick={handleClose}
               className="text-gray-500 hover:text-gray-700"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </Button>
           </div>
@@ -138,27 +171,23 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               muted
               className="w-full h-48 bg-gray-900 rounded-lg object-cover"
             />
-
-            {/* Overlay scanning */}
+            {/* Overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-pink-500 w-48 h-24 rounded-lg relative">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-pink-500"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-pink-500"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-pink-500"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-pink-500"></div>
+              <div className="border-2 border-pink-500 w-48 h-24 relative">
                 <div className="absolute inset-x-0 top-1/2 h-0.5 bg-pink-500 animate-pulse"></div>
               </div>
             </div>
           </div>
 
           {/* Status */}
-          <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">Arahkan kamera ke barcode produk</p>
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Arahkan kamera ke barcode produk
+            </p>
             {isScanning && (
-              <div className="flex items-center justify-center gap-2 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm">Kamera aktif</span>
-              </div>
+              <p className="text-green-600 text-sm mt-1 animate-pulse">
+                Kamera aktif
+              </p>
             )}
           </div>
 
