@@ -178,10 +178,10 @@ export default function POSPage() {
             {/* Center (Title) */}
             <div className="flex-1 text-center">
               <h1 className="text-3xl md:text-4xl font-bold text-pink-500 mb-1">
-                Toko Perlengkapan Bayi
+                Els Baby Store
               </h1>
               <p className="text-gray-600 text-sm md:text-base">
-                Aplikasi Kasir Modern & Sederhana
+                Management Store
               </p>
             </div>
 
