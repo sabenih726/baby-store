@@ -12,12 +12,13 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [feedback, setFeedback] = useState("")
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | "">("")
   const [codeReader] = useState(new BrowserMultiFormatReader())
 
-  // --- STARTING CAMERA + DECODER ---
+  // ---- Mulai Kamera & Decoder ----
   useEffect(() => {
     let canceled = false
     setIsScanning(true)
@@ -25,6 +26,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     if (videoRef.current) {
       codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
         if (canceled) return
+
+        // simpan stream ke ref supaya bisa dihentikan manual
+        if (videoRef.current?.srcObject) {
+          streamRef.current = videoRef.current.srcObject as MediaStream
+        }
+
         if (result) {
           const text = result.getText()
           const productName = onScan(text)
@@ -44,23 +51,28 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
     return () => {
       canceled = true
-      stopCamera()
-      codeReader.reset()
+      handleClose()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // --- STOP CAMERA MANUAL ---
+  // ---- STOP Kamera ----
   const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
     codeReader.reset()
     setIsScanning(false)
   }
 
+  // ---- CLOSE Modal ----
   const handleClose = () => {
     stopCamera()
     onClose()
   }
 
-  // --- MANUAL INPUT (Fallback) ---
+  // ---- INPUT Manual ----
   const handleManualInput = () => {
     const barcode = prompt("Masukkan barcode secara manual:")
     if (barcode) {
@@ -77,7 +89,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     }
   }
 
-  // --- SOUND FEEDBACK ---
+  // ---- BEEP ----
   const playBeepSound = () => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
@@ -96,14 +108,19 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     oscillator.stop(audioContext.currentTime + 0.1)
   }
 
-  // --- UI ---
+  // ---- UI ----
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md relative">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Scanner Barcode</CardTitle>
-            <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-500 hover:text-gray-700">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
