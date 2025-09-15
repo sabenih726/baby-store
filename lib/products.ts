@@ -22,7 +22,7 @@ export const products: Product[] = [
     name: "Pampers Size M",
     price: 85000,
     category: "pampers",
-    image: "/baby-diapers-medium-size.jpg",
+    image: "/shopping.png",
     barcode: "8992742110234",
   },
   {
