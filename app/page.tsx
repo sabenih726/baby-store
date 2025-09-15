@@ -29,7 +29,6 @@ export default function POSPage() {
       setCart(savedCart)
     }
 
-    // Load products from localStorage if available
     const savedProducts = localStorage.getItem("pos-products")
     if (savedProducts) {
       try {
@@ -65,7 +64,9 @@ export default function POSPage() {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === productId)
       if (existingItem) {
-        return prevCart.map((item) => (item.id === productId ? { ...item, quantity: item.quantity + 1 } : item))
+        return prevCart.map((item) =>
+          item.id === productId ? { ...item, quantity: item.quantity + 1 } : item
+        )
       } else {
         return [...prevCart, { ...product, quantity: 1 }]
       }
@@ -84,8 +85,8 @@ export default function POSPage() {
 
   // Update item quantity
   const updateQuantity = (productId: number, amount: number) => {
-    setCart((prevCart) => {
-      return prevCart
+    setCart((prevCart) =>
+      prevCart
         .map((item) => {
           if (item.id === productId) {
             const newQuantity = item.quantity + amount
@@ -94,7 +95,7 @@ export default function POSPage() {
           return item
         })
         .filter(Boolean) as CartItem[]
-    })
+    )
   }
 
   // Remove item from cart
@@ -116,7 +117,6 @@ export default function POSPage() {
 
   const deleteProduct = (productId: number) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId))
-    // Also remove from cart if exists
     setCart((prev) => prev.filter((item) => item.id !== productId))
   }
 
@@ -139,9 +139,7 @@ export default function POSPage() {
       transactionId: Math.floor(Math.random() * 900000) + 100000,
     }
 
-    // Save transaction to history
     saveTransaction(receipt)
-
     setReceiptData(receipt)
     setShowReceipt(true)
   }
@@ -158,47 +156,43 @@ export default function POSPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-4 lg:p-6">
         {/* Header */}
-        <header className="text-center mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
+        <header className="mb-8">
+          <div className="flex items-center">
+            {/* Left (Kelola Produk) */}
+            <div className="flex-1">
               <button
                 onClick={() => setShowProductManagement(true)}
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200 flex items-center gap-1.5 text-sm font-medium"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                  />
-                </svg>
+                <span className="material-icons">storefront</span>
                 Kelola Produk
               </button>
             </div>
-            <div className="text-center">
-              <h1 className="text-2xl md:text-4xl font-bold text-pink-500 mb-2">Toko Perlengkapan Bayi</h1>
-              <p className="text-gray-600 text-sm md:text-base">Aplikasi Kasir Modern & Sederhana</p>
+
+            {/* Center (Title) */}
+            <div className="flex-1 text-center">
+              <h1 className="text-3xl md:text-4xl font-bold text-pink-500 mb-1">
+                Toko Perlengkapan Bayi
+              </h1>
+              <p className="text-gray-600 text-sm md:text-base">
+                Aplikasi Kasir Modern & Sederhana
+              </p>
             </div>
+
+            {/* Right (Statistik) */}
             <div className="flex-1 flex justify-end">
               <button
                 onClick={() => setShowStats(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200 flex items-center gap-1.5 text-sm font-medium"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
+                <span className="material-icons">bar_chart</span>
                 Statistik
               </button>
             </div>
           </div>
         </header>
 
+        {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Products Section */}
           <div className="lg:col-span-2">
@@ -209,21 +203,13 @@ export default function POSPage() {
                   <SearchBar value={searchTerm} onChange={setSearchTerm} />
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="bg-pink-500 hover:bg-pink-600 text-white font-medium px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center gap-1.5 text-sm"
+                    className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center gap-2 text-sm"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V6a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1zm12 0h2a1 1 0 001-1V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v1a1 1 0 001 1zM5 20h2a1 1 0 001-1v-1a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1z"
-                      />
-                    </svg>
+                    <span className="material-icons">qr_code_scanner</span>
                     Scan
                   </button>
                 </div>
               </div>
-
               <ProductGrid products={filteredProducts} onAddToCart={addToCart} />
             </div>
           </div>
@@ -240,30 +226,20 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Barcode Scanner Modal */}
+      {/* Modals */}
       {showScanner && <BarcodeScanner onScan={addProductByBarcode} onClose={() => setShowScanner(false)} />}
 
-      {/* Receipt Modal */}
       {showReceipt && receiptData && <ReceiptModal receipt={receiptData} onClose={resetTransaction} />}
 
-      {/* Sales Statistics Modal */}
       {showStats && <SalesStats onClose={() => setShowStats(false)} />}
 
-      {/* Product Management Modal */}
       {showProductManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-2xl font-semibold">Manajemen Produk</h2>
               <button onClick={() => setShowProductManagement(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V6a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1zm12 0h2a1 1 0 001-1V6a1 1 0 00-1-1h-2a1 1 0 00-1 1v1a1 1 0 001 1zM5 20h2a1 1 0 001-1v-1a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1z"
-                  />
-                </svg>
+                <span className="material-icons">close</span>
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
