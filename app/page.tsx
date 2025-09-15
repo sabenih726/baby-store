@@ -231,9 +231,6 @@ export default function POSPage() {
                       />
                     </svg>
                     Scan
-                </button>
-                    <span className="material-icons">qr_code_scanner</span>
-                    Scan
                   </button>
                 </div>
               </div>
