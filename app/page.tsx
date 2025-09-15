@@ -217,6 +217,21 @@ export default function POSPage() {
                     onClick={() => setShowScanner(true)}
                     className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center gap-2 text-sm"
                   >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 5a1 1 0 011-1h3a1 1 0 011 1v1a1 1 0 01-1 1H6v2a1 1 0 01-1 1H4a1 1 0 01-1-1V5zm14 0a1 1 0 00-1-1h-3a1 1 0 00-1 1v1a1 1 0 001 1h3v2a1 1 0 001 1h1a1 1 0 001-1V5zm-4 12a1 1 0 011-1h3v-2a1 1 0 011-1h1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-1zM5 15h3a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a1 1 0 011-1z"
+                      />
+                    </svg>
+                    Scan
+                </button>
                     <span className="material-icons">qr_code_scanner</span>
                     Scan
                   </button>
