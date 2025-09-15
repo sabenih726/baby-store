@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BrowserMultiFormatReader } from "@zxing/browser"
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => string | null
@@ -11,49 +12,55 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [feedback, setFeedback] = useState("")
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | "">("")
-  const streamRef = useRef<MediaStream | null>(null)
+  const [codeReader] = useState(new BrowserMultiFormatReader())
 
+  // --- STARTING CAMERA + DECODER ---
   useEffect(() => {
-    startCamera()
+    let canceled = false
+    setIsScanning(true)
+
+    if (videoRef.current) {
+      codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+        if (canceled) return
+        if (result) {
+          const text = result.getText()
+          const productName = onScan(text)
+
+          if (productName) {
+            setFeedback(`${productName} berhasil ditambahkan!`)
+            setFeedbackType("success")
+            playBeepSound()
+            setTimeout(() => handleClose(), 1500)
+          } else {
+            setFeedback("Barcode tidak ditemukan di database.")
+            setFeedbackType("error")
+          }
+        }
+      })
+    }
+
     return () => {
+      canceled = true
       stopCamera()
+      codeReader.reset()
     }
   }, [])
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      })
-
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        setIsScanning(true)
-      }
-    } catch (error) {
-      console.error("Error accessing camera:", error)
-      setFeedback("Gagal mengakses kamera. Pastikan izin kamera telah diberikan.")
-      setFeedbackType("error")
-    }
-  }
-
+  // --- STOP CAMERA MANUAL ---
   const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
+    codeReader.reset()
     setIsScanning(false)
   }
 
+  const handleClose = () => {
+    stopCamera()
+    onClose()
+  }
+
+  // --- MANUAL INPUT (Fallback) ---
   const handleManualInput = () => {
     const barcode = prompt("Masukkan barcode secara manual:")
     if (barcode) {
@@ -62,9 +69,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         setFeedback(`${productName} berhasil ditambahkan!`)
         setFeedbackType("success")
         playBeepSound()
-        setTimeout(() => {
-          onClose()
-        }, 1500)
+        setTimeout(() => handleClose(), 1500)
       } else {
         setFeedback("Barcode tidak ditemukan dalam database.")
         setFeedbackType("error")
@@ -72,8 +77,8 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     }
   }
 
+  // --- SOUND FEEDBACK ---
   const playBeepSound = () => {
-    // Create a simple beep sound
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
@@ -91,11 +96,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     oscillator.stop(audioContext.currentTime + 0.1)
   }
 
-  const handleClose = () => {
-    stopCamera()
-    onClose()
-  }
-
+  // --- UI ---
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md relative">
@@ -111,7 +112,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Camera View */}
+          {/* Camera */}
           <div className="relative">
             <video
               ref={videoRef}
@@ -120,25 +121,20 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               muted
               className="w-full h-48 bg-gray-900 rounded-lg object-cover"
             />
-            <canvas ref={canvasRef} className="hidden" />
 
-            {/* Scanning Overlay */}
+            {/* Overlay scanning */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="border-2 border-pink-500 w-48 h-24 rounded-lg relative">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-pink-500 rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-pink-500 rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-pink-500 rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-pink-500 rounded-br-lg"></div>
-
-                {/* Scanning Line Animation */}
-                <div className="absolute inset-0 overflow-hidden rounded-lg">
-                  <div className="w-full h-0.5 bg-pink-500 animate-pulse absolute top-1/2 transform -translate-y-1/2"></div>
-                </div>
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-pink-500"></div>
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-pink-500"></div>
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-pink-500"></div>
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-pink-500"></div>
+                <div className="absolute inset-x-0 top-1/2 h-0.5 bg-pink-500 animate-pulse"></div>
               </div>
             </div>
           </div>
 
-          {/* Instructions */}
+          {/* Status */}
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">Arahkan kamera ke barcode produk</p>
             {isScanning && (
@@ -162,20 +158,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             </div>
           )}
 
-          {/* Manual Input Button */}
+          {/* Buttons */}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleManualInput} className="flex-1 bg-transparent">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
+            <Button variant="outline" onClick={handleManualInput} className="flex-1">
               Input Manual
             </Button>
-            <Button variant="outline" onClick={handleClose} className="flex-1 bg-transparent">
+            <Button variant="outline" onClick={handleClose} className="flex-1">
               Tutup
             </Button>
           </div>
